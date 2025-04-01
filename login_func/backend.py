@@ -42,13 +42,6 @@ def protected():
     else:
         return jsonify(access=False), 403
 
-#Tam, kad butu hashed passwordas database ir veiktu loginas reikia addint per postmana
-# post pasirenki body/raw ir pastint sita dali
-# {
-#     "username": "adas",
-#     "password": "padas"
-# }
-
 @app.route('/add_user', methods=['POST'])
 def add_user():
     data = request.get_json()
@@ -63,7 +56,6 @@ def add_user():
 
     return jsonify(success=True, message="User added successfully!")
 
-#Jeigu reikes istrinti useri
 @app.route('/delete_user', methods=['DELETE'])
 def delete_user():
     data = request.get_json()
@@ -77,7 +69,6 @@ def delete_user():
     else:
         return jsonify(success=False, message="User not found!"), 404
 
-#perziuret database
 @app.route('/view_users', methods=['GET'])
 def view_users():
     users = User.query.all()
@@ -93,6 +84,25 @@ def view_users():
 
     return jsonify(users_data)
 
-
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+'''
+To add a user via Postman
+
+POST
+{
+     "username": "adas",
+     "password": "padas"
+}
+
+To delete user via Postman
+DELETE /delete_user
+
+To view users via Postman
+GET /view_users
+
+'''
+
+
