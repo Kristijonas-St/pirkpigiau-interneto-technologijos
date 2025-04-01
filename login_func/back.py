@@ -8,25 +8,27 @@ def login():
     username = data.get('username')
     password = data.get('password')
 
-    # Allow only 'adas' & 'padas' to access /protected
-    if username in ['adas', 'a'] and password in ['padas', 'a']:
-        res = make_response(jsonify(success=True))
-        if username == 'adas' and password == 'padas':
-            res.set_cookie('session', 'logged_in')  # Allows /protected
-        else:
-            res.set_cookie('session', 'guest')  # This is not allowed in /protected
-        return res
+    res = make_response(jsonify(success=True))
+    
+    if username == 'adas' and password == 'padas':
+        res.set_cookie('session', 'logged_in')
+    elif username == 'a' and password == 'a':
+        res.set_cookie('session', 'guest')
     else:
         return jsonify(success=False), 401
 
+    print(f"User {username} logged in with session: {res.headers.get('Set-Cookie')}")
+    return res
+
 @back.route('/protected')
 def protected():
-    session_cookie = request.cookies.get('session')  # Checking for 'session' cookie
+    session_cookie = request.cookies.get('session')  
+    print(f"Session Cookie Received: {session_cookie}")
 
     if session_cookie == 'logged_in': 
-        return jsonify(access=True)  # Access granted
+        return jsonify(access=True)
     else:
-        return jsonify(access=False), 403  # Access denied
+        return jsonify(access=False), 403
 
 if __name__ == "__main__":
     back.run(debug=True)
