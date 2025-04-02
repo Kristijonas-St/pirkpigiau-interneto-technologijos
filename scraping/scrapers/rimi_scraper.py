@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 
+from scraping.base_scraper.request import ScrapingRequest
+
 headers = {'User-Agent': 'Mozilla/5.0'}
 
 urls = [
@@ -19,22 +21,18 @@ urls = [
     'https://www.rimi.lt/e-parduotuve/lt/produktai/alkoholiniai-ir-nealkoholiniai-gerimai/c/SH-1?currentPage=1&pageSize=20&query=%3Arelevance%3AallCategories%3ASH-1%3AassortmentStatus%3AinAssortment'
 ]
 
-class RimiScraper:
-    def __init__(self):
-        self.item_name = None
-        self.cheapest_item = None
-        self.item_url = None
-        self.message = None
-        self.product_is_found = False
-    
-    def scrape(self, item):
-        self.scrape_by_search(item + 'asasfasfsaf')
+class RimiScraper(ScrapingRequest):
+    def __init__(self, item_name):
+        super().__init__("Rimi", item_name)
+        
+    def scrape(self):
+        self.scrape_by_search(self.item_name + 'asdasdad')
         if self.product_is_found:
             return self
 
         print("Didn't find by QUERY, trying all known URLs...")
 
-        self.scrape_by_urls(item)
+        self.scrape_by_urls(self.item_name)
         if self.product_is_found:
             return self
         
@@ -76,7 +74,7 @@ class RimiScraper:
 
                 self.product_is_found = True
                 self.item_name = found_item_name
-                self.price = found_price
+                self.cheapest_item = found_price
                 self.item_url = found_item_url
                 return
         self.product_is_found = False

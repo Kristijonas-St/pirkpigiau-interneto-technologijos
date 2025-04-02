@@ -1,5 +1,5 @@
 import unittest
-from scraping_feature.scraping_feature import ScrapingRequest
+from base_scraping.scraping_feature import ScrapingRequest
 from speech_response_feature.speech_response import say_formatted_response
 
 

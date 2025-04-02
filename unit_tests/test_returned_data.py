@@ -1,5 +1,5 @@
 import pytest
-from scraping_feature.scraping_feature import ScrapingRequest
+from base_scraping.scraping_feature import ScrapingRequest
 
 @pytest.mark.parametrize("item_to_search", ["bananai", "pomidorai", "agurkas"])
 def test_scraping_rimi_item(item_to_search):

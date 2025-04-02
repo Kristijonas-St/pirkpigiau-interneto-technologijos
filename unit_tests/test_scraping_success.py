@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, Mock
-from scraping_feature.scrapers.iki_scraper import IkiScraper
+from base_scraping.scrapers.iki_scraper import IkiScraper
 
 FAKE_HTML = """
 <html>

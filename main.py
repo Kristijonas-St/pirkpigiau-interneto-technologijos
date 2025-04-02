@@ -13,7 +13,7 @@ if "logged_in" not in st.session_state:
 login_placeholder = st.empty()
 
 def load_search_page():
-    from scraping_feature.scraping_feature import ScrapingRequest
+    from scraping.base_scraper.request import ScrapingRequest
     from speech_response_feature.speech_response import say_formatted_response
     from voice_recognition.voice_recognition import VoiceRecognizer
 
