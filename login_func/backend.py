@@ -42,8 +42,8 @@ def protected():
     else:
         return jsonify(access=False), 403
 
-@app.route('/add_user', methods=['POST'])
-def add_user():
+@app.route('/register', methods=['POST'])
+def register():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -54,7 +54,8 @@ def add_user():
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify(success=True, message="User added successfully!")
+    return jsonify(success=True, message="User registered successfully!")
+
 
 @app.route('/delete_user', methods=['DELETE'])
 def delete_user():
