@@ -20,63 +20,66 @@ urls = [
 ]
 
 class RimiScraper:
-    def scrape(self, item):
-        
-        item_name, price, item_url = self.search_by_prm(item + 'asdsadasdasd')
-        if item_name and price and item_url:
-            print(f"{item_name}, {price}, {item_url}")
-        else:
-            print("Not found by search, scraping through harcoded urls...")
-            
-            for url in urls:
-                item_name, price, item_url = self.scrape_based_on_url(item, url)
-                if item_name and price and item_url:
-                    print(f"{item_name}, {price}, {item_url}")
-                    return
-                else:
-                    print("Didn't find it")
-                    
-
-
-        
-    def search_by_prm(self, item):
-        base_url = 'https://www.rimi.lt/e-parduotuve/lt/'
-        query = f'paieska?query={item}'
-        path_par = base_url + query
-
-        response = requests.get(path_par, headers=headers)
-        if response.status_code != 200:
-            print(f"Failed to fetch query {path_par} (Status {response.status_code})")
-        else:
-            return self.use_soup(response, item)
-            
-
-    def scrape_based_on_url(self, item, url):
-        for i in range(1, 5):  
-            paginated_url = url.replace('currentPage=1', f'currentPage={i}')
-            response = requests.get(paginated_url, headers=headers)
-
-            if response.status_code != 200:
-                print(f"Failed to fetch page {i} (Status {response.status_code})")
-                return None, None, None
-            else:
-                return self.use_soup(response, item)
-
+    def __init__(self):
+        self.item_name = None
+        self.cheapest_item = None
+        self.item_url = None
+        self.message = None
+        self.product_is_found = False
     
+    def scrape(self, item):
+        self.scrape_by_search(item + 'asasfasfsaf')
+        if self.product_is_found:
+            return self
+
+        print("Didn't find by QUERY, trying all known URLs...")
+
+        self.scrape_by_urls(item)
+        if self.product_is_found:
+            return self
+        
+        return None
+        
+    def scrape_by_search(self, item):
+        search_url = self.form_search_url(item)
+        response = requests.get(search_url, headers=headers)
+        if response.status_code != 200:
+            self.product_is_found = False
+            return
+        else:
+            self.use_soup(response, item)
+
+    def scrape_by_urls(self, item):
+        for url in urls:
+            response = requests.get(url, headers=headers)
+            if response.status_code != 200:
+                continue
+
+            self.use_soup(response, item)
+            if self.product_is_found:
+                break
+
+
+    def form_search_url(self, item):
+        return 'https://www.rimi.lt/e-parduotuve/lt/' + f'paieska?query={item}'
+        
     def use_soup(self, response, item):
         soup = BeautifulSoup(response.text, 'html.parser')
         products = soup.find_all('li', class_='product-grid__item')
 
         for product in products:
             if fuzz.partial_ratio(item.lower(), product.text.lower()) > 75:
-                item_name = self.extract_item_name(product)
+                found_item_name = self.extract_item_name(product)
                 euro, cents = self.extract_price(product)
-                price = f"{euro}.{cents}"
-                item_url = self.extract_hyperlink(product)
-            
-                return item_name, price, item_url
-            
-        return None, None, None
+                found_price = f"{euro}.{cents}"
+                found_item_url = self.extract_hyperlink(product)
+
+                self.product_is_found = True
+                self.item_name = found_item_name
+                self.price = found_price
+                self.item_url = found_item_url
+                return
+        self.product_is_found = False
 
 
     def extract_item_name(self, product):
@@ -96,9 +99,7 @@ class RimiScraper:
         if link_tag and 'href' in link_tag.attrs:
             return base_url + link_tag.attrs['href']    
         return None
+    
 
 
-if __name__ == '__main__':
-    scraper = RimiScraper()
-    scraper.scrape('bananai')
 

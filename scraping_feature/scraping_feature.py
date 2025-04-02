@@ -1,12 +1,6 @@
-import requests
-from bs4 import BeautifulSoup
-
 from .scrapers.iki_scraper import IkiScraper
 from .scrapers.maxima_scraper import MaximaScraper
 from .scrapers.rimi_scraper import RimiScraper
-
-
-
 
 class ScrapingRequest:
     def __init__(self, shop_name, item):
@@ -34,14 +28,18 @@ class ScrapingRequest:
 
                 return None
             case "Rimi":
-                result = RimiScraper()
-                self.item_name, self.cheapest_item, self.item_url, self.message = result.scrape(self.item)
-                if self.item_name and self.cheapest_item and self.item_url and self.message:
+                result = RimiScraper().scrape('Bananai')
+                if result.product_is_found:
+                    self.item_name = result.item_name
+                    self.cheapest_item = result.price
+                    self.item_url = result.item_url
                     return self
                 
                 return None
             case _:
                 print("Unknown error")
+
+
 
 
 
