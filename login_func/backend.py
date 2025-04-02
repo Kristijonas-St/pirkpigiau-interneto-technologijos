@@ -39,6 +39,8 @@ def protected():
     session_cookie = request.cookies.get('session')
     if session_cookie == 'logged_in':
         return jsonify(access=True)
+    elif session_cookie == 'registered':
+        return jsonify(access=True)
     else:
         return jsonify(access=False), 403
 
@@ -48,14 +50,22 @@ def register():
     username = data.get('username')
     password = data.get('password')
 
+    if not username or not password:
+        return jsonify(success=False, message="Please fill the required fields"), 400
+
+    existing_user = User.query.filter_by(username=username).first()
+    if existing_user:
+        return jsonify(success=False, message="Username already taken!"), 409
+
     hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
 
     new_user = User(username=username, password=hashed_password)
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify(success=True, message="User registered successfully!")
-
+    res = make_response(jsonify(success=True))
+    res.set_cookie('session', 'registered')
+    return res
 
 @app.route('/delete_user', methods=['DELETE'])
 def delete_user():
@@ -90,14 +100,6 @@ if __name__ == "__main__":
 
 
 '''
-To add a user via Postman
-
-POST
-{
-     "username": "adas",
-     "password": "padas"
-}
-
 To delete user via Postman
 DELETE /delete_user
 
