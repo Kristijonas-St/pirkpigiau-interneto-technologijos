@@ -127,6 +127,7 @@ if not st.session_state.logged_in:
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
         login_button = st.button("Login")
+        register_button = st.button("Register")
 
     if login_button:
         login_url = "http://localhost:5000/login"
@@ -137,5 +138,15 @@ if not st.session_state.logged_in:
             handle_permissions()
         else:
             st.error("Login failed. Check your username and password.")
+
+    if register_button:
+        register_url = "http://localhost:5000/register"
+        response = session.post(register_url, json={"username": username, "password": password})
+
+        if response.status_code == 200 and response.json().get("success"):
+            login_placeholder.empty()
+            handle_permissions()
+        else:
+            st.error("Register failed. Username is already taken.")
 else:
     load_search_page() 
