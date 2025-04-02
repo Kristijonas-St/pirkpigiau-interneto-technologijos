@@ -2,23 +2,43 @@ import requests
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 
+from scraping.base_scraper.request import ScrapingRequest
+
 headers = {'User-Agent': 'Mozilla/5.0'}
 
 url = "https://www.maxima.lt/pasiulymai"
 
 
-class MaximaScraper:
-    def scrape(self, item):
+class MaximaScraper(ScrapingRequest):
+    def __init__(self, item_name):
+        super().__init__("Maxima", item_name)
+    
+    def scrape(self):
         response = requests.get(url, headers=headers)
         if response.status_code != 200:
-            return None, None, None, None
+            return None
 
         soup = BeautifulSoup(response.text, 'html.parser')
-        if self.get_cheapest_product(item, soup):
-            product_name, price = self.get_cheapest_product(item, soup)
-            return product_name, price, url, 'success'
+        if self.get_cheapest_product(self.item_name, soup):
+            product_name, price = self.get_cheapest_product(self.item_name, soup)
+            
+            self.item_name = product_name
+            self.cheapest_item = price
+            self.product_is_found = True
+            self.item_url = url
+            return self
 
-        return None, None, None, None
+        return None
+    
+
+    def get_cheapest_product(self, item, soup):
+        product_containers = self.extract_containers_of_products_w_pricetags(soup)
+        mapping = self.get_maxima_product_list(product_containers)
+        found_items = self.find_matching_products(item, mapping)
+        if not found_items:
+            return None
+        found_items.sort(key=lambda x: float(x[1]))
+        return found_items[0][0], found_items[0][1]
 
     def extract_containers_of_products_w_pricetags(self, soup):
         product_containers = soup.find_all('div', class_='card card-small is-pointer h-100')
@@ -64,11 +84,3 @@ class MaximaScraper:
 
         return found_items
 
-    def get_cheapest_product(self, item, soup):
-        product_containers = self.extract_containers_of_products_w_pricetags(soup)
-        mapping = self.get_maxima_product_list(product_containers)
-        found_items = self.find_matching_products(item, mapping)
-        if not found_items:
-            return None
-        found_items.sort(key=lambda x: float(x[1]))
-        return found_items[0][0], found_items[0][1]
