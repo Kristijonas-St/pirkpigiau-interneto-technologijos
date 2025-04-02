@@ -1,6 +1,12 @@
 import streamlit as st
 import requests
 
+from scraping.scrapers.rimi_scraper import RimiScraper
+from scraping.scrapers.maxima_scraper import MaximaScraper
+from scraping.scrapers.iki_scraper import IkiScraper
+from speech_response_feature.speech_response import say_formatted_response
+from voice_recognition.voice_recognition import VoiceRecognizer
+
 #TODO: clean code
 
 session = requests.Session()
@@ -13,10 +19,6 @@ if "logged_in" not in st.session_state:
 login_placeholder = st.empty()
 
 def load_search_page():
-    from scraping.base_scraper.request import ScrapingRequest
-    from speech_response_feature.speech_response import say_formatted_response
-    from voice_recognition.voice_recognition import VoiceRecognizer
-
     def perform_scraping(item_name, shops):
         data = []
         results = dict()
@@ -25,8 +27,14 @@ def load_search_page():
         is_found = False
 
         for shop in shops:
-            request = ScrapingRequest(shop, item_name)
-            data.append(request.scrape_price())
+            match shop:
+                case 'Rimi':
+                    request = RimiScraper(item_name)
+                case 'Maxima':
+                    request = MaximaScraper(item_name)
+                case 'IKI':
+                    request = IkiScraper(item_name)
+            data.append(request.scrape())
 
             if data[index]:
                 is_found = True
