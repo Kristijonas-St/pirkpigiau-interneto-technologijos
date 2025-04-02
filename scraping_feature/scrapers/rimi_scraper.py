@@ -21,12 +21,35 @@ urls = [
 
 class RimiScraper:
     def scrape(self, item):
-        for url in urls:
-            item_name, price, item_url = self.scrape_based_on_url(item, url)
-            if item_name and price and item_url:
-                return item_name, price, item_url, 'success'
-            return None, None, None, None
         
+        item_name, price, item_url = self.search_by_prm(item + 'asdsadasdasd')
+        if item_name and price and item_url:
+            print(f"{item_name}, {price}, {item_url}")
+        else:
+            print("Not found by search, scraping through harcoded urls...")
+            
+            for url in urls:
+                item_name, price, item_url = self.scrape_based_on_url(item, url)
+                if item_name and price and item_url:
+                    print(f"{item_name}, {price}, {item_url}")
+                    return
+                else:
+                    print("Didn't find it")
+                    
+
+
+        
+    def search_by_prm(self, item):
+        base_url = 'https://www.rimi.lt/e-parduotuve/lt/'
+        query = f'paieska?query={item}'
+        path_par = base_url + query
+
+        response = requests.get(path_par, headers=headers)
+        if response.status_code != 200:
+            print(f"Failed to fetch query {path_par} (Status {response.status_code})")
+        else:
+            return self.use_soup(response, item)
+            
 
     def scrape_based_on_url(self, item, url):
         for i in range(1, 5):  
@@ -36,21 +59,26 @@ class RimiScraper:
             if response.status_code != 200:
                 print(f"Failed to fetch page {i} (Status {response.status_code})")
                 return None, None, None
+            else:
+                return self.use_soup(response, item)
 
-            soup = BeautifulSoup(response.text, 'html.parser')
-            products = soup.find_all('li', class_='product-grid__item')
-
-            for product in products:
-                if fuzz.partial_ratio(item.lower(), product.text.lower()) > 75:
-                    item_name = self.extract_item_name(product)
-                    euro, cents = self.extract_price(product)
-                    price = f"{euro}.{cents}"
-                    item_url = self.extract_hyperlink(product)
-               
-                    return item_name, price, item_url
-                
-            return None, None, None
     
+    def use_soup(self, response, item):
+        soup = BeautifulSoup(response.text, 'html.parser')
+        products = soup.find_all('li', class_='product-grid__item')
+
+        for product in products:
+            if fuzz.partial_ratio(item.lower(), product.text.lower()) > 75:
+                item_name = self.extract_item_name(product)
+                euro, cents = self.extract_price(product)
+                price = f"{euro}.{cents}"
+                item_url = self.extract_hyperlink(product)
+            
+                return item_name, price, item_url
+            
+        return None, None, None
+
+
     def extract_item_name(self, product):
         name_tag = product.find('a', class_='card__url js-gtm-eec-product-click')
         return name_tag.attrs['aria-label']
@@ -69,4 +97,8 @@ class RimiScraper:
             return base_url + link_tag.attrs['href']    
         return None
 
+
+if __name__ == '__main__':
+    scraper = RimiScraper()
+    scraper.scrape('bananai')
 
