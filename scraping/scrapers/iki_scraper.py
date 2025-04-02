@@ -1,25 +1,36 @@
 import requests
-import streamlit
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
+
+from scraping.base_scraper.request import ScrapingRequest
 
 headers = {'User-Agent': 'Mozilla/5.0'}
 
 url = "https://iki.lt/akcijos/savaites-akcijos/"
 
 
-class IkiScraper:
-    def scrape(self, item):
+class IkiScraper(ScrapingRequest):
+    def __init__(self, item_name):
+        super().__init__("IKI", item_name)
+
+    def scrape(self):
         response = requests.get(url, headers=headers)
         if response.status_code != 200:
-            return None, None, None, None
+            return None
 
         soup = BeautifulSoup(response.text, 'html.parser')
-        if self.get_cheapest_product(item, soup):
-            product_name, price = self.get_cheapest_product(item, soup)
-            return product_name, price, url, 'success'
+        if self.get_cheapest_product(self.item_name, soup):
+            product_name, price = self.get_cheapest_product(self.item_name, soup)
 
-        return None, None, None, None
+            self.item_name = product_name
+            self.cheapest_item = price
+            self.product_is_found = True
+            self.item_url = url
+            return self
+
+        return None
+    
+    
     def extract_containers_of_products_w_pricetags(self, soup):
         product_containers = soup.find_all('div', class_='d-flex flex-column justify-content-between position-relative h-100')
         product_containers_w_pricetags = []
