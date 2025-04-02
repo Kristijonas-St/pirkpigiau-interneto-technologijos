@@ -147,6 +147,6 @@ if not st.session_state.logged_in:
             login_placeholder.empty()
             handle_permissions()
         else:
-            st.error("Register failed. Username is already taken.")
+            st.error("Registration failed. Username is already taken.")
 else:
     load_search_page() 
