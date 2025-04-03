@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 
+from delete_user_button_func.delete_user_button import delete_user_button
 from scraping.scrapers.rimi_scraper import RimiScraper
 from scraping.scrapers.maxima_scraper import MaximaScraper
 from scraping.scrapers.iki_scraper import IkiScraper
@@ -9,8 +10,10 @@ from voice_recognition.voice_recognition import VoiceRecognizer
 
 #TODO: clean code
 
-session = requests.Session()
+if "session" not in st.session_state:
+    st.session_state.session = requests.Session()
 
+session = st.session_state.session  # use everywhere from here on
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -70,7 +73,6 @@ def load_search_page():
 
     input_method = st.radio("Pasirinkite įvedimo būdą:", ("Įvesti ranka", "Įrašyti balsu"))
 
-
     if input_method == "Įvesti ranka":
         st.session_state.recognized_text = st.text_input("Įveskite prekės pavadinimą:", value=st.session_state.recognized_text)
         if st.session_state.recognized_text:
@@ -108,6 +110,7 @@ def load_search_page():
         else:
             say_formatted_response(False, st.session_state.recognized_text, "", None)
 
+    delete_user_button(session)
 
 def handle_permissions():
     protected_url = "http://localhost:5000/protected"
@@ -134,6 +137,11 @@ if not st.session_state.logged_in:
         response = session.post(login_url, json={"username": username, "password": password}) 
 
         if response.status_code == 200 and response.json().get("success"):
+            cookie_header = response.headers.get("set-cookie")
+            if cookie_header:
+                session.cookies.set("session", cookie_header.split("session=")[1].split(";")[0])
+
+            st.session_state.logged_in = True
             login_placeholder.empty()
             handle_permissions()
         else:
@@ -144,9 +152,13 @@ if not st.session_state.logged_in:
         response = session.post(register_url, json={"username": username, "password": password})
 
         if response.status_code == 200 and response.json().get("success"):
+            cookie_header = response.headers.get("set-cookie")
+            if cookie_header:
+                session.cookies.set("session", cookie_header.split("session=")[1].split(";")[0])
             login_placeholder.empty()
             handle_permissions()
         else:
             st.error("Registration failed. Username is already taken.")
 else:
-    load_search_page() 
+    #st.write(session.cookies.get_dict())
+    load_search_page()
