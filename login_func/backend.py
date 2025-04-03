@@ -15,6 +15,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
+    #usertype = db.Column(db.String(50), nullable=False, default="client")
 
 with app.app_context():
     db.create_all()
@@ -29,7 +30,7 @@ def login():
 
     if user and bcrypt.check_password_hash(user.password, password):
         res = make_response(jsonify(success=True))
-        res.set_cookie('session', 'logged_in')
+        res.set_cookie('session', f'{username} logged_in')
         return res
     else:
         return jsonify(success=False, message="Invalid credentials"), 401
@@ -37,9 +38,11 @@ def login():
 @app.route('/protected')
 def protected():
     session_cookie = request.cookies.get('session')
-    if session_cookie == 'logged_in':
+    if 'logged_in' in session_cookie:
+    #if session_cookie.__contains__('logged_in'):
+    #if session_cookie:
         return jsonify(access=True)
-    elif session_cookie == 'registered':
+    elif 'registered' in session_cookie:
         return jsonify(access=True)
     else:
         return jsonify(access=False), 403
@@ -64,7 +67,7 @@ def register():
     db.session.commit()
 
     res = make_response(jsonify(success=True))
-    res.set_cookie('session', 'registered')
+    res.set_cookie('session', f'{username} registered')
     return res
 
 @app.route('/delete_user', methods=['DELETE'])
@@ -79,6 +82,26 @@ def delete_user():
         return jsonify(success=True, message="User deleted successfully!")
     else:
         return jsonify(success=False, message="User not found!"), 404
+
+@app.route('/delete_logged_user', methods=['DELETE'])
+def delete_logged_user():
+    username = request.cookies.get('session')
+
+    if not username:
+        return jsonify(success=False, message="Not logged in"), 401
+
+    if "logged_in" in username:
+        username = username.replace(" logged_in", "")
+    else:
+        username = username.replace(" registered", "")
+    deleted_count = db.session.query(User).filter_by(username=username).delete()
+
+    if deleted_count > 0:
+        db.session.commit()
+        return jsonify(success=True, message=f"User '{username}' deleted.")
+    else:
+        return jsonify(success=False, message="User not found."), 404
+
 
 @app.route('/view_users', methods=['GET'])
 def view_users():
