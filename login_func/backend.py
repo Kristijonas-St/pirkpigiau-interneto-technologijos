@@ -13,9 +13,8 @@ bcrypt = Bcrypt(app)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    #usertype = db.Column(db.String(50), nullable=False, default="client")
+    username = db.Column(db.String(20), unique=True, nullable=False)
+    password = db.Column(db.String(20), nullable=False)
 
 with app.app_context():
     db.create_all()
@@ -56,12 +55,17 @@ def register():
     if not username or not password:
         return jsonify(success=False, message="Please fill the required fields"), 400
 
+    if len(username) < 5 or len(username) > 20:
+        return jsonify(success=False, message="Username must be between 5 and 20 characters long"), 400
+
+    if len(password) < 6 or len(password) > 20:
+        return jsonify(success=False, message="Password must be between 6 and 20 characters long"), 400
+
     existing_user = User.query.filter_by(username=username).first()
     if existing_user:
         return jsonify(success=False, message="Username already taken!"), 409
 
     hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-
     new_user = User(username=username, password=hashed_password)
     db.session.add(new_user)
     db.session.commit()
