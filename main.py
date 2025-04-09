@@ -158,7 +158,7 @@ if not st.session_state.logged_in:
             login_placeholder.empty()
             handle_permissions()
         else:
-            st.error("Registration failed. Username is already taken.")
+            st.error(response.json().get('message'))
 else:
     #st.write(session.cookies.get_dict())
     load_search_page()
