@@ -1,5 +1,8 @@
+import jwt
+import streamlit
 import streamlit as st
 import requests
+import time
 
 from delete_user_button_func.delete_user_button import delete_user_button
 from scraping.scrapers.rimi_scraper import RimiScraper
@@ -10,6 +13,17 @@ from voice_recognition.voice_recognition import VoiceRecognizer
 
 #TODO: clean code
 
+def handle_permissions():
+    protected_url = "http://localhost:5000/protected"
+    response = session.get(protected_url)
+
+    if response.status_code == 200 and response.json().get("access"):
+        st.session_state.logged_in = True
+        load_search_page()
+    else:
+        st.error("Access Denied. Please log in again.")
+
+
 if "session" not in st.session_state:
     st.session_state.session = requests.Session()
 
@@ -17,7 +31,6 @@ session = st.session_state.session  # use everywhere from here on
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-
 
 login_placeholder = st.empty()
 
@@ -112,17 +125,6 @@ def load_search_page():
 
     delete_user_button(session)
 
-def handle_permissions():
-    protected_url = "http://localhost:5000/protected"
-    response = session.get(protected_url)
-
-    if response.status_code == 200 and response.json().get("access"):
-        st.session_state.logged_in = True
-        load_search_page()
-    else:
-        st.error("Access Denied. Please log in again.")
-
-
 
 if not st.session_state.logged_in:
     with login_placeholder.container():
@@ -134,13 +136,8 @@ if not st.session_state.logged_in:
 
     if login_button:
         login_url = "http://localhost:5000/login"
-        response = session.post(login_url, json={"username": username, "password": password}) 
-
+        response = session.post(login_url, json={"username": username, "password": password})
         if response.status_code == 200 and response.json().get("success"):
-            cookie_header = response.headers.get("set-cookie")
-            if cookie_header:
-                session.cookies.set("session", cookie_header.split("session=")[1].split(";")[0])
-
             st.session_state.logged_in = True
             login_placeholder.empty()
             handle_permissions()
@@ -152,13 +149,24 @@ if not st.session_state.logged_in:
         response = session.post(register_url, json={"username": username, "password": password})
 
         if response.status_code == 200 and response.json().get("success"):
-            cookie_header = response.headers.get("set-cookie")
-            if cookie_header:
-                session.cookies.set("session", cookie_header.split("session=")[1].split(";")[0])
             login_placeholder.empty()
             handle_permissions()
         else:
             st.error(response.json().get('message'))
 else:
     #st.write(session.cookies.get_dict())
-    load_search_page()
+    if "last_token_check" not in st.session_state:
+        st.session_state.last_token_check = 0
+
+    if time.time() - st.session_state.last_token_check > 10:
+        protected_url = "http://localhost:5000/protected"
+        response = session.get(protected_url)
+        if response.status_code != 200 or not response.json().get("access"):
+            st.session_state.logged_in = False
+            st.session_state.clear()
+            st.rerun()
+
+        st.session_state.last_token_check = time.time()
+
+    if st.session_state.logged_in:
+        load_search_page()

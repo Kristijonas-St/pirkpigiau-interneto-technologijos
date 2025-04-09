@@ -3,10 +3,15 @@ import requests
 
 def delete_user_button(session):
     st.subheader("🗑️ Ištrinti mano paskyrą")
+    token = session.cookies.get("token")
 
-    if st.button("Ištrinti mano paskyrą"):
+    if st.button("Ištrinti mano paskyrą") and token:
         try:
-            response = session.delete("http://127.0.0.1:5000/delete_logged_user")
+            delete_url = "http://localhost:5000/delete_logged_user"
+            headers = {
+                "Cookie": f"token={token}"
+            }
+            response = session.delete(delete_url, headers=headers)
 
             if response.status_code == 200:
                 st.success(response.json().get("message"))

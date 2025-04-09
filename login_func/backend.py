@@ -1,3 +1,4 @@
+import streamlit
 from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
@@ -14,10 +15,47 @@ bcrypt = Bcrypt(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
-    password = db.Column(db.String(20), nullable=False)
+    password = db.Column(db.String(250), nullable=False)
 
 with app.app_context():
     db.create_all()
+
+import jwt
+import datetime
+
+# Secret key for encoding/decoding JWTs
+app.config['SECRET_KEY'] = 'your-secret-key'  # 🔒 Use env var in production
+
+def generate_jwt(username):
+    payload = {
+        'username': username,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=15)
+    }
+    return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+def decode_jwt(token):
+    try:
+        return jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+
+# @app.route('/login', methods=['POST'])
+# def login():
+#     data = request.get_json()
+#     username = data.get('username')
+#     password = data.get('password')
+#
+#     user = User.query.filter_by(username=username).first()
+#
+#     if user and bcrypt.check_password_hash(user.password, password):
+#         res = make_response(jsonify(success=True))
+#         res.set_cookie('session', f'{username} logged_in')
+#         return res
+#     else:
+#         return jsonify(success=False, message="Invalid credentials"), 401
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -28,23 +66,38 @@ def login():
     user = User.query.filter_by(username=username).first()
 
     if user and bcrypt.check_password_hash(user.password, password):
+        token = generate_jwt(username)
         res = make_response(jsonify(success=True))
-        res.set_cookie('session', f'{username} logged_in')
+        res.set_cookie('token', token, httponly=True)
         return res
     else:
         return jsonify(success=False, message="Invalid credentials"), 401
 
+
+# @app.route('/protected')
+# def protected():
+#     session_cookie = request.cookies.get('session')
+#     if 'logged_in' in session_cookie:
+#     #if session_cookie.__contains__('logged_in'):
+#     #if session_cookie:
+#         return jsonify(access=True)
+#     elif 'registered' in session_cookie:
+#         return jsonify(access=True)
+#     else:
+#         return jsonify(access=False), 403
+
 @app.route('/protected')
 def protected():
-    session_cookie = request.cookies.get('session')
-    if 'logged_in' in session_cookie:
-    #if session_cookie.__contains__('logged_in'):
-    #if session_cookie:
-        return jsonify(access=True)
-    elif 'registered' in session_cookie:
-        return jsonify(access=True)
+    token = request.cookies.get('token')
+    if not token:
+        return jsonify(access=False, message="No token"), 403
+
+    decoded = decode_jwt(token)
+    if decoded:
+        return jsonify(access=True, user=decoded['username'])
     else:
-        return jsonify(access=False), 403
+        return jsonify(access=False, message="Invalid or expired token"), 403
+
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -70,8 +123,9 @@ def register():
     db.session.add(new_user)
     db.session.commit()
 
+    token = generate_jwt(username)
     res = make_response(jsonify(success=True))
-    res.set_cookie('session', f'{username} registered')
+    res.set_cookie('token', token, httponly=True)
     return res
 
 @app.route('/delete_user', methods=['DELETE'])
@@ -89,22 +143,27 @@ def delete_user():
 
 @app.route('/delete_logged_user', methods=['DELETE'])
 def delete_logged_user():
-    username = request.cookies.get('session')
+    token = request.cookies.get('token')
 
+    if not token:
+        return jsonify(success=False, message="Token missing"), 401
+
+    decoded = decode_jwt(token)
+    if not decoded:
+        return jsonify(success=False, message="Invalid or expired token"), 403
+
+    username = decoded.get('username')
     if not username:
-        return jsonify(success=False, message="Not logged in"), 401
+        return jsonify(success=False, message="Username missing in token"), 400
 
-    if "logged_in" in username:
-        username = username.replace(" logged_in", "")
-    else:
-        username = username.replace(" registered", "")
     deleted_count = db.session.query(User).filter_by(username=username).delete()
 
     if deleted_count > 0:
         db.session.commit()
         return jsonify(success=True, message=f"User '{username}' deleted.")
     else:
-        return jsonify(success=False, message="User not found."), 404
+        return jsonify(success=False, message="User not found"), 404
+
 
 
 @app.route('/view_users', methods=['GET'])
