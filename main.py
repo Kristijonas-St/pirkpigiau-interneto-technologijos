@@ -57,7 +57,7 @@ def use_formatted_method(method, url, username, password):
     else:
         match method:
             case 'login':
-                st.error("Login failed. Check your username and password.")   
+                st.error(response.json().get('message'))
             case 'register':
                 st.error(response.json().get('message'))
 
