@@ -26,6 +26,7 @@ if "last_token_check" not in st.session_state:
 
 if "session" not in st.session_state:
     st.session_state.session = requests.Session()
+    st.session_state.session.verify = False
 session = st.session_state.session
 
 login_placeholder = st.empty()
@@ -40,7 +41,7 @@ def load_login_page():
         register_button = st.button("Register")    
 
     method = 'login' if login_button else 'register' if register_button else ''
-    url = f"http://localhost:5000/{method}"
+    url = f"https://localhost:5000/{method}"
     
     use_formatted_method(method, url, username, password)
     if st.session_state.logged_in:
@@ -61,7 +62,7 @@ def use_formatted_method(method, url, username, password):
                 st.error(response.json().get('message'))
 
 def handle_permissions():
-    protected_url = "http://localhost:5000/protected"
+    protected_url = "https://localhost:5000/protected"
     response = session.get(protected_url)
 
     if response.status_code == 200 and response.json().get("access"):
@@ -135,7 +136,7 @@ def say_scraping_results():
 
 def remove_jwt_token():
     if time.time() - st.session_state.last_token_check > 10:
-        protected_url = "http://localhost:5000/protected"
+        protected_url = "https://localhost:5000/protected"
         response = session.get(protected_url)
         if response.status_code != 200 or not response.json().get("access"):
             st.session_state.logged_in = False

@@ -1,4 +1,3 @@
-import streamlit
 from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
@@ -24,7 +23,7 @@ import jwt
 import datetime
 
 # Secret key for encoding/decoding JWTs
-app.config['SECRET_KEY'] = 'your-secret-key'  # 🔒 Use env var in production
+app.config['SECRET_KEY'] = 'your-secret-key'
 
 def generate_jwt(username):
     payload = {
@@ -41,22 +40,6 @@ def decode_jwt(token):
     except jwt.InvalidTokenError:
         return None
 
-
-# @app.route('/login', methods=['POST'])
-# def login():
-#     data = request.get_json()
-#     username = data.get('username')
-#     password = data.get('password')
-#
-#     user = User.query.filter_by(username=username).first()
-#
-#     if user and bcrypt.check_password_hash(user.password, password):
-#         res = make_response(jsonify(success=True))
-#         res.set_cookie('session', f'{username} logged_in')
-#         return res
-#     else:
-#         return jsonify(success=False, message="Invalid credentials"), 401
-
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -68,23 +51,10 @@ def login():
     if user and bcrypt.check_password_hash(user.password, password):
         token = generate_jwt(username)
         res = make_response(jsonify(success=True))
-        res.set_cookie('token', token, httponly=True)
+        res.set_cookie('token', token, httponly=True, secure=True, samesite='Strict')
         return res
     else:
         return jsonify(success=False, message="Invalid credentials"), 401
-
-
-# @app.route('/protected')
-# def protected():
-#     session_cookie = request.cookies.get('session')
-#     if 'logged_in' in session_cookie:
-#     #if session_cookie.__contains__('logged_in'):
-#     #if session_cookie:
-#         return jsonify(access=True)
-#     elif 'registered' in session_cookie:
-#         return jsonify(access=True)
-#     else:
-#         return jsonify(access=False), 403
 
 @app.route('/protected')
 def protected():
@@ -125,7 +95,7 @@ def register():
 
     token = generate_jwt(username)
     res = make_response(jsonify(success=True))
-    res.set_cookie('token', token, httponly=True)
+    res.set_cookie('token', token, httponly=True, secure=True, samesite='Strict')
     return res
 
 @app.route('/delete_user', methods=['DELETE'])
@@ -182,16 +152,4 @@ def view_users():
     return jsonify(users_data)
 
 if __name__ == "__main__":
-    app.run(debug=True)
-
-
-'''
-To delete user via Postman
-DELETE /delete_user
-
-To view users via Postman
-GET /view_users
-
-'''
-
-
+    app.run(ssl_context=("cert.pem", "key.pem"))
