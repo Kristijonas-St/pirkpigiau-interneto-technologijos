@@ -7,7 +7,7 @@ def delete_user_button(session):
 
     if st.button("Ištrinti mano paskyrą") and token:
         try:
-            delete_url = "http://localhost:5000/delete_logged_user"
+            delete_url = "https://localhost:5000/delete_logged_user"
             headers = {
                 "Cookie": f"token={token}"
             }
