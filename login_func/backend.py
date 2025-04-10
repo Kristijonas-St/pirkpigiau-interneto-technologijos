@@ -1,6 +1,10 @@
 from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+import jwt
+import datetime
+import os
+from dotenv import load_dotenv
 from sympy import failing_assumptions
 
 app = Flask(__name__)
@@ -19,11 +23,8 @@ class User(db.Model):
 with app.app_context():
     db.create_all()
 
-import jwt
-import datetime
-
-# Secret key for encoding/decoding JWTs
-app.config['SECRET_KEY'] = 'your-secret-key'
+load_dotenv()
+app.config['SECRET_KEY'] = os.getenv("secret_key")
 
 def generate_jwt(username):
     payload = {
@@ -67,7 +68,6 @@ def protected():
         return jsonify(access=True, user=decoded['username'])
     else:
         return jsonify(access=False, message="Invalid or expired token"), 403
-
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -133,8 +133,6 @@ def delete_logged_user():
         return jsonify(success=True, message=f"User '{username}' deleted.")
     else:
         return jsonify(success=False, message="User not found"), 404
-
-
 
 @app.route('/view_users', methods=['GET'])
 def view_users():
